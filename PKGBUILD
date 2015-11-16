@@ -5,7 +5,7 @@
 # Contributor: Revellion
 
 pkgname=xen
-pkgver=4.5.1
+pkgver=4.6.0
 pkgrel=1
 pkgdesc="Virtual Machine Hypervisor & Tools"
 arch=(i686 x86_64)
@@ -34,13 +34,9 @@ source=(http://bits.xensource.com/oss-xen/release/$pkgver/$pkgname-$pkgver.tar.g
     tmpfiles.d-$pkgname.conf
     09_xen
     ati-passthrough.patch
-    etherboot-gcc5.patch
-    gcc5.patch
     gnutls-3.4.0.patch::http://git.alpinelinux.org/cgit/aports/plain/main/xen/gnutls-3.4.0.patch?id=628f27939412a7d6fb67734bd644119a1f49463a
     ovmf.patch
     ovmf-gcc4.9-basetools.patch
-    ovmf-gcc4.9-ovmfpkg.patch
-    seabios-gcc5.patch
     efi-xen.cfg
     grub.conf
     $pkgname.conf)
@@ -54,7 +50,7 @@ noextract=(lwip-1.3.0.tar.gz
     gmp-4.3.2.tar.bz2
     ipxe-git-9a93db3f0947484e30e753bbd61a10b17336e20e.tar.gz)
 
-sha256sums=('668c11d4fca67ac44329e369f810356eacd37b28d28fb96e66aac77f3c5e1371'
+sha256sums=('6fa1c2431df55aa5950d248e6093b8c8c0f11c357a0adbd348a2186478e80909'
             '632ce8c193ccacc3012bd354bdb733a4be126f7c098e111930aa41dad537405c'
             '772e4d550e07826665ed0528c071dd5404ef7dbe1825a38c8adbc2a00bca948f'
             '1795c7d067a43174113fdf03447532f373e1c6c57c08d61d9e4e9be5e244b05e'
@@ -68,13 +64,9 @@ sha256sums=('668c11d4fca67ac44329e369f810356eacd37b28d28fb96e66aac77f3c5e1371'
             '40e0760810a49f925f2ae9f986940b40eba477dc6d3e83a78baaae096513b3cf'
             '06c9f6140f7ef4ccfc4b1a7d9732a673313e269733180f53afcd9e43bf6c26bb'
             'd93c2d5bcdf0c3e4c6e8efb357cb4b9d618209025361f5ccd9d03651a8acd7a3'
-            'deeec880522c1374ad135dc8b4c14c7b301464a60fbac410efb3db70f670eed9'
-            '22b03d220aa6caa0bbe04868a1839a658a99d020bde95a31952a2a624490ef95'
             'e25d38376e22f6f935d2c0ce1b9d6e6b47ff261b5e6056bc3b47168739d7a992'
-            '1c44b9dc848bb6c3ef2ab76e4807a0b3ed360aea6b13b5b86d2bf5301d14247b'
-            '45aae7a1d48357e5f981c12870b5bcac0dd0f630f84e398160d8c9adb42a6674'
-            '8e16638d0cc366d1eaae7ccbcf43215853b4444a625478ec8f6e0a2c655370d9'
-            '091f5eed7e33b45cabb232e9a03dd6c1abae1a820b804c888c20d4b7e673618f'
+            '665241732dd168771f415fbdf3776a76f5861c9471fa9c6131ee2eb5154d6d6a'
+            'f0cc7dc0b7b9914442fa661a93aa7c952a77e0b24938e88510efeb7d3dcab8b1'
             'ceaff798a92a7aef1465a0a0b27b1817aedd2c857332b456aaa6dd78dc72438f'
             '3f0af16958c3e057b9baa5afc47050d9adf7dd553274dd97ae4f35938fefb568'
             '50a9b7fd19e8beb1dea09755f07318f36be0b7ec53d3c9e74f3266a63e682c0c')
@@ -82,7 +74,7 @@ sha256sums=('668c11d4fca67ac44329e369f810356eacd37b28d28fb96e66aac77f3c5e1371'
 prepare() {
     cd "$pkgname-$pkgver/"
 
-    ### Patching 
+    ### Patching
 
     # Security Patches - Base
 
@@ -92,16 +84,11 @@ prepare() {
 
     # Compile Patches
     patch -p1 -i "$srcdir/gnutls-3.4.0.patch"
-    patch -p1 -i "$srcdir/gcc5.patch"
-    echo "etherboot-gcc5.patch" >> tools/firmware/etherboot/patches/series
-    cp "$srcdir/seabios-gcc5.patch" tools/firmware/
-    cp "$srcdir/etherboot-gcc5.patch" tools/firmware/etherboot/patches/
 
     # OVMF Compile support (Pulls from GIT repo, so patching to patch after pull request)
     echo "Patching OVMF..."
     patch -Np1 -i "$srcdir/ovmf.patch"
     cp "$srcdir/ovmf-gcc4.9-basetools.patch" tools/firmware/
-    cp "$srcdir/ovmf-gcc4.9-ovmfpkg.patch" tools/firmware/
 
     # Uncomment line below if you want to enable ATI Passthrough support (some reported successes, untested with 4.4)
     #patch -Np1 -i "$srcdir/ati-passthrough.patch"
@@ -128,10 +115,11 @@ build() {
     cd "$pkgname-$pkgver/"
     export CFLAGS=-fno-caller-saves
     ./autogen.sh
-    ./configure PYTHON=/usr/bin/python2 --prefix=/usr --sbindir=/usr/bin --with-sysconfig-leaf-dir=conf.d --with-initddir=/etc/init.d \
-		--enable-systemd --disable-docs --enable-stubdom --enable-qemu-traditional --enable-rombios \
-		--with-extra-qemuu-configure-args="--disable-bluez --disable-gtk --enable-spice --enable-usb-redir" # --enable-ovmf
-    make LANG=C PYTHON=python2 
+    ./configure PYTHON=/usr/bin/python2 \
+            --prefix=/usr --sbindir=/usr/bin --with-sysconfig-leaf-dir=conf.d --with-initddir=/etc/init.d \
+            --enable-systemd --disable-docs --enable-stubdom --enable-qemu-traditional --enable-rombios \
+            --with-extra-qemuu-configure-args="--disable-bluez --disable-gtk --enable-spice --enable-usb-redir" --enable-ovmf
+    make LANG=C PYTHON=python2
 }
 
 package() {
@@ -162,7 +150,7 @@ package() {
         cd usr/
         cp -r lib64/* lib/
         rm -rf lib64
-	cd ../
+        cd ../
     fi
 
     # If EFI binaries build, move to /boot
@@ -172,12 +160,12 @@ package() {
     fi
 
     # Compress syms file and move to a share location
-    gzip boot/$pkgname-syms-*
-    mv boot/$pkgname-syms-*.gz usr/share/xen
+    gzip usr/lib/debug/$pkgname-syms-*
+    cp usr/lib/debug/$pkgname-syms-*.gz usr/share/xen
 
     ##### Kill unwanted stuff #####
     # hypervisor symlinks
-    rm -f boot/xen{,-4,-4.5,-4.5-rc}.gz
+    rm -f boot/xen{,-4,-4.6,-4.6-rc}.gz
 
     # Documentation cleanup ( see xen-docs package )
     rm -rf usr/share/doc
@@ -190,5 +178,4 @@ package() {
 
     # adhere to Static Library Packaging Guidelines
     rm -rf usr/lib/*.a
-
 }
